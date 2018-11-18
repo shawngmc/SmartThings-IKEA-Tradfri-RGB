@@ -32,8 +32,6 @@
  *      doing so, the color picker does not get updated
  **/
 
-import physicalgraph.zigbee.zcl.DataType
-
 metadata {
   definition (name: "IKEA Tradfri RGB Light", namespace: "puzzle-star", author: "Pedro Garcia") {
 
@@ -250,6 +248,91 @@ def parseColorAttribute(id, value) {
     parsed
 }
 
+// Based on https://mmbnetworks.atlassian.net/wiki/spaces/SPRHA17/pages/110782747/ZCL+Specification+References
+enum ZCLDataType{
+	NO_DATA(0x00, null),
+	DATA8(0x08, 1),
+	DATA16(0x09, 2),
+	DATA24(0x0a, 3),
+	DATA32(0x0b, 4),
+	DATA40(0x0c, 5),
+	DATA48(0x0d, 6),
+	DATA56(0x0e, 7),
+	DATA64(0x0f, 8),
+	BOOLEAN(0x10, 1),
+	BITMAP8(0x18, 1),
+	BITMAP16(0x19, 2),
+	BITMAP24(0x1a, 3),
+	BITMAP32(0x1b, 4),
+	BITMAP40(0x1c, 5),
+	BITMAP48(0x1d, 6),
+	BITMAP56(0x1e, 7),
+	BITMAP64(0x1f, 8),
+	UINT8(0x20, 1),
+	UINT16(0x21, 2),
+	UINT24(0x22, 3),
+	UINT32(0x23, 4),
+	UINT40(0x24, 5),
+	UINT48(0x25, 6),
+	UINT56(0x26, 7),
+	UINT64(0x27, 8),
+	INT8(0x28, 1),
+	INT16(0x29, 2),
+	INT24(0x2a, 3),
+	INT32(0x2b, 4),
+	INT40(0x2c, 5),
+	INT48(0x2d, 6),
+	INT56(0x2e, 7),
+	INT64(0x2f, 8),
+	ENUM8(0x30, 1),
+	ENUM16(0x31, 2),
+	FLOAT2(0x38, 2),
+	FLOAT4(0x39, 4),
+	FLOAT8(0x3a, 8),
+	STRING_OCTET(0x41, null),
+	STRING_CHAR(0x42, null),
+	STRING_LONG_OCTET(0x43, null),
+	STRING_LONG_CHAR(0x44, null),
+	ARRAY(0x48, null),
+	STRUCTURE(0x4c, null),
+	SET(0x50, null),
+	BAG(0x51, null),
+	TIME_OF_DAY(0xe0, 4),
+	DATE(0xe1, 4),
+	UTCTIME(0xe2, 4),
+	CLUSTER_ID(0xe8, 4),
+	ATTRIBUTE_ID(0xe9, 2),
+	BACNET_OID(0xea, 2),
+	IEEE_ADDRESS(0xf0, 8),
+	SECKEY128(0xf1, 16),
+	UNKNOWN(0xff, null)
+	
+	ZCLDataType(int canonicalValue, Integer bytes) {
+		this.canonicalValue = canonicalValue
+		this.bytes = bytes
+	}
+	private final int canonicalValue
+	private final Integer bytes
+	int getCanonicalValue() {
+		canonicalValue
+	}
+	Integer getTypeLength() {
+		bytes
+	}
+}
+
+def getTypeLength(attrType) {
+  def length = null;
+  for (checkType in ZCLDataType.values()) {
+    if (checkType.getCanonicalValue() == attrType) {
+      length = checkType.getTypeLength();
+      break;
+    }
+  }
+	
+  length
+}
+
 def parseAttributeList(cluster, list) {
   logTrace "Cluster: $cluster, AttrList: $list"
   def parsed = true
@@ -264,13 +347,14 @@ def parseAttributeList(cluster, list) {
       attrShift = 1
     }
 
-    if(DataType.isVariableLength(attrType)) {
+    // SGM: Reworked DataType length check
+    def attrLen = getTypeLength(attrType)
+    if(attrLen == null) {
       logDebug "Not parsing variable length attribute: $list"
       parsed = false
       break
     }
     
-    def attrLen = DataType.getLength(attrType)
     def attrValue = list.substring(6 + 2*attrShift, 6 + 2*(attrShift+attrLen))
 
 	logTrace "Attr - Id: $attrId($attrLen), Type: $attrType, Value: $attrValue"
@@ -424,10 +508,10 @@ def setColor(red, green, blue) {
   
   logTrace "setColor: xy ($intX, $intY)"
 
-  // TODO: Convert to Integer.ToHexString.Reverse and pad to the UINT16 length
+  // SGM: Converted to Integer.ToHexString.Reverse and pad to the UINT16 length
   // See https://docs.smartthings.com/en/latest/ref-docs/zigbee-ref.html?highlight=pack#datatype-pack
-  def strX = DataType.pack(intX, DataType.UINT16, 1);
-  def strY = DataType.pack(intY, DataType.UINT16, 1);
+  def strX = Integer.toHexString(intX).reverse().padRight(4, "0");
+  def strY = Integer.toHexString(intY).reverse().padRight(4, "0");
   
   zigbee.command(0x0300, 0x07, strX, strY, "0a00")
 }
