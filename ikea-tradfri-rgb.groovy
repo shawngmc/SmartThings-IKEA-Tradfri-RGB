@@ -424,6 +424,8 @@ def setColor(red, green, blue) {
   
   logTrace "setColor: xy ($intX, $intY)"
 
+  // TODO: Convert to Integer.ToHexString.Reverse and pad to the UINT16 length
+  // See https://docs.smartthings.com/en/latest/ref-docs/zigbee-ref.html?highlight=pack#datatype-pack
   def strX = DataType.pack(intX, DataType.UINT16, 1);
   def strY = DataType.pack(intY, DataType.UINT16, 1);
   
