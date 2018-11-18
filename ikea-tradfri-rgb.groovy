@@ -48,14 +48,14 @@ metadata {
     capability "Polling"
     capability "Health Check"
 
-	// Capability Attributes
-	attribute "switch", "enum", ["on", "off"]
+    // Capability Attributes
+    attribute "switch", "enum", ["on", "off"]
     attribute "level", "number"
     attribute "hue", "number"
     attribute "saturation", "number"
     attribute "color", "string"
 
-	// Custom Attributes
+    // Custom Attributes
     attribute "colorName", "string"
     attribute "red", "number"
     attribute "green", "number"
@@ -323,7 +323,7 @@ enum ZCLDataType{
 
 def getTypeLength(attrType) {
   def length = null;
-  for (checkType in ZCLDataType.values()) {
+  for (def checkType = ZCLDataType.MIN_VALUE; checkType < ZCLDataType.MAX_VALUE; checkType++) {
     if (checkType.getCanonicalValue() == attrType) {
       length = checkType.getTypeLength();
       break;
